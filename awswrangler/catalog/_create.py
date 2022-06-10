@@ -616,7 +616,7 @@ def create_database(
     name : str
         Database name.
     description : str, optional
-        A Descrption for the Database.
+        A Description for the Database.
     catalog_id : str, optional
         The ID of the Data Catalog from which to retrieve Databases.
         If none is provided, the AWS account ID is used by default.
@@ -644,13 +644,42 @@ def create_database(
         args["Description"] = description
 
     try:
-        r = client_glue.get_database(Name=name)
-        if not exist_ok:
-            raise exceptions.AlreadyExists(f"Database {name} already exists and <exist_ok> is set to False.")
-        if description and description != r["Database"].get("Description", ""):
-            client_glue.update_database(**_catalog_id(catalog_id=catalog_id, Name=name, DatabaseInput=args))
+        database_info = (client_glue.get_database(Name=name, CatalogId=catalog_id) if catalog_id
+        else client_glue.get_database(Name=name))
     except client_glue.exceptions.EntityNotFoundException:
+        database_exist = False
+    else:
+        database_exist = True
+
+    # 1st way
+    if database_exist and exist_ok and description not in [database_info["Database"].get("Description"), "", None]:
+        client_glue.update_database(**_catalog_id(catalog_id=catalog_id, Name=name, DatabaseInput=args))
+
+    if database_exist and not exist_ok:
+        raise exceptions.AlreadyExists(f"Database {name} already exists and <exist_ok> is set to False.")
+
+    if not database_exist:
         client_glue.create_database(**_catalog_id(catalog_id=catalog_id, DatabaseInput=args))
+
+    # # 2nd way
+    # if database_exist:
+    #     if exist_ok:
+    #         if description and description != r["Database"].get("Description", ""):
+    #             client_glue.update_database(**_catalog_id(catalog_id=catalog_id, Name=name, DatabaseInput=args))
+    #     else:
+    #         raise exceptions.AlreadyExists(f"Database {name} already exists and <exist_ok> is set to False.")
+    # else:
+    #     client_glue.create_database(**_catalog_id(catalog_id=catalog_id, DatabaseInput=args))
+
+    # # old way
+    # try:
+    #     r = client_glue.get_database(Name=name, CatalogId=catalog_id)
+    #     if not exist_ok:
+    #         raise exceptions.AlreadyExists(f"Database {name} already exists and <exist_ok> is set to False.")
+    #     if description and description != r["Database"].get("Description", ""):
+    #         client_glue.update_database(**_catalog_id(catalog_id=catalog_id, Name=name, DatabaseInput=args))
+    # except client_glue.exceptions.EntityNotFoundException:
+    #     client_glue.create_database(**_catalog_id(catalog_id=catalog_id, DatabaseInput=args))
 
 
 @apply_configs

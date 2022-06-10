@@ -644,14 +644,15 @@ def create_database(
         args["Description"] = description
 
     try:
-        client_glue.get_database(Name=name, CatalogId=catalog_id)
+        database_info = (client_glue.get_database(Name=name, CatalogId=catalog_id) if catalog_id
+        else client_glue.get_database(Name=name))
     except client_glue.exceptions.EntityNotFoundException:
         database_exist = False
     else:
         database_exist = True
 
     # 1st way
-    if database_exist and exist_ok and description and description != r["Database"].get("Description", ""):
+    if database_exist and exist_ok and description not in [database_info["Database"].get("Description"), "", None]:
         client_glue.update_database(**_catalog_id(catalog_id=catalog_id, Name=name, DatabaseInput=args))
 
     if database_exist and not exist_ok:

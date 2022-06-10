@@ -616,7 +616,7 @@ def create_database(
     name : str
         Database name.
     description : str, optional
-        A Descrption for the Database.
+        A Description for the Database.
     catalog_id : str, optional
         The ID of the Data Catalog from which to retrieve Databases.
         If none is provided, the AWS account ID is used by default.
